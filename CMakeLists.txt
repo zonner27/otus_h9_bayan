@@ -7,11 +7,14 @@ endif()
 
 project(bayan VERSION 0.0.${PATCH_VERSION})
 
-find_package(GTest REQUIRED)
-include_directories(SYSTEM ${GTEST_INCLUDE_DIRS})
+#find_package(GTest REQUIRED)
+#include_directories(SYSTEM ${GTEST_INCLUDE_DIRS})
 
 set(SOURCE_PATH "${PROJECT_SOURCE_DIR}/src")
 #set(TEST_PATH "${PROJECT_SOURCE_DIR}/tests")
+
+find_package(Boost COMPONENTS filesystem system program_options regex REQUIRED)
+include_directories(${Boost_INCLUDE_DIR})
 
 add_executable(bayan ${SOURCE_PATH}/main.cpp
 #                    ${SOURCE_PATH}/packet.cpp
@@ -37,6 +40,8 @@ set_target_properties(
 #    PROPERTIES
 #        INCLUDE_DIRECTORIES ${SOURCE_PATH}
 #)
+
+target_link_libraries(bayan PRIVATE ${Boost_LIBRARIES})
 
 install(TARGETS bayan RUNTIME DESTINATION bin)
 
