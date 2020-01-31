@@ -2,15 +2,18 @@
 #include <vector>
 #include <string>
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
 
 namespace po = boost::program_options;
 
 class Bayan
 {
-    std::vector<std::string> m_inputdir;
-    std::vector<std::string> m_outputdir;
-    int m_levelscan;
-    int m_minfilesize;
+    std::vector<boost::filesystem::path> m_inputdir;
+    std::vector<boost::filesystem::path> m_outputdir;
+    std::vector<boost::filesystem::path> m_listOfFiles;
+    bool m_levelscan;
+    size_t m_minfilesize;
     std::vector<std::string> m_maskname;
     int m_blocksize;
     enum algorithm {crc32, md5};
@@ -30,7 +33,7 @@ public:
     }
 
     void minfilesize(int _minsize) {
-        m_minfilesize = _minsize;
+        m_minfilesize = static_cast<size_t>(_minsize);
     }
 
     void maskname(std::string _mask) {
@@ -49,15 +52,63 @@ public:
         m_alorithm = md5;
     }
 
+    bool checkmask(boost::filesystem::path filepath) {
+        if (m_maskname.size() == 0)
+            return true;
+        boost::smatch what;
+        for (auto varmask : m_maskname)
+        {
+           const boost::regex filter(varmask);
+           if (boost::regex_search(filepath.filename().string(), what, filter, boost::match_extra))
+               return true;
+        }
+        return false;
+    }
+
+    bool checksize(boost::filesystem::path filepath) {
+        if (boost::filesystem::file_size(filepath) >= m_minfilesize)
+            return true;
+        else
+            return false;
+    }
+
+    void findfiles() {
+
+        for (auto dirPath : m_inputdir) {
+            if (boost::filesystem::exists(dirPath) && boost::filesystem::is_directory(dirPath))
+            {
+                boost::filesystem::recursive_directory_iterator iter(dirPath);
+                boost::filesystem::recursive_directory_iterator end;
+                while (iter != end) {
+                    if (!m_levelscan) {     //уровень сканирования только текущая директория
+                        if (boost::filesystem::is_directory(iter->path()))
+                          iter.no_push();
+                        else
+                            if (boost::filesystem::is_regular_file(iter->path()) && checksize(iter->path())
+                                    && checkmask(iter->path()))
+                                m_listOfFiles.push_back(iter->path());
+                    } else {               //уровень сканирования все директории
+                          if (boost::filesystem::is_directory(iter->path()) &&    //директории нет в списке исключения
+                              (std::find(m_outputdir.begin(), m_outputdir.end(), iter->path()) != m_outputdir.end()))
+                              iter.no_push();
+                          else
+                              if (boost::filesystem::is_regular_file(iter->path()) && checksize(iter->path())
+                                      && checkmask(iter->path()))
+                                  m_listOfFiles.push_back(iter->path());
+                    }
+                    ++iter;
+                }
+            }
+        }
+    }
+
     void print() {
         std::cout << "INPUTDIR: \n";
-        for (auto var : m_inputdir) {
+        for (auto var : m_inputdir)
             std::cout << var << std::endl;
-        }
         std::cout << "OUTPUTDIR: \n";
-        for (auto var : m_outputdir) {
+        for (auto var : m_outputdir)
             std::cout << var << std::endl;
-        }
         std::cout << "level scan = " << m_levelscan << std::endl;
         std::cout << "minfilesize = " << m_minfilesize << std::endl;
         std::cout << "MASK: \n";
@@ -66,9 +117,10 @@ public:
         }
         std::cout << "block size = " << m_blocksize << std::endl;
         std::cout << "algo = " << m_alorithm << std::endl;
+        std::cout << "------files:-------- \n";
+        for (auto var : m_listOfFiles)
+            std::cout << var.string() << std::endl;
     }
-
-
 };
 
 int main(int ac, char *av[])
@@ -81,10 +133,10 @@ int main(int ac, char *av[])
         generic.add_options()
             ("input,i", po::value<std::vector<std::string>>()->multitoken(), "enter input dir")
             ("output,o", po::value<std::vector<std::string>>()->multitoken(), "enter output dir")
-            ("levelscan,l", po::value<int>()->default_value(0), "enter level scan, default 0 (0 - this dir)")
-            ("minsize,m", po::value<int>()->default_value(1), "enter minimum size of file, default 1")
-            ("mask", po::value<std::vector<std::string>>()->multitoken(), "enter file name mask")
-            ("block,b", po::value<int>()->default_value(1), "enter block size")
+            ("levelscan,l", po::value<int>()->default_value(1), "enter level scan, default 1 (0 - only this dir, 1 - all dirs)")
+            ("minsize,s", po::value<int>()->default_value(1), "enter minimum size of file, default 1")
+            ("mask,m", po::value<std::vector<std::string>>()->multitoken(), "enter file name mask")
+            ("block,b", po::value<int>()->default_value(5), "enter block size")
             ("crc32", "crc32 algorithm")
             ("md5", "md5 algorithm")
             ("version,v", "print version string")
@@ -145,6 +197,7 @@ int main(int ac, char *av[])
             return 0;
         }
 
+        bayans.findfiles();
         bayans.print();
 
     }

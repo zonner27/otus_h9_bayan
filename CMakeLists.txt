@@ -24,7 +24,7 @@ add_executable(bayan ${SOURCE_PATH}/main.cpp
 #                          ${SOURCE_PATH}/packet.cpp
 #                          ${SOURCE_PATH}/observer.cpp
 #)
-#find_package(Threads)
+find_package(Threads)
 #target_link_libraries(test_bulk ${GTEST_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 set_target_properties(
