@@ -4,6 +4,7 @@
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
+#include <fstream>
 
 namespace po = boost::program_options;
 
@@ -12,6 +13,7 @@ class Bayan
     std::vector<boost::filesystem::path> m_inputdir;
     std::vector<boost::filesystem::path> m_outputdir;
     std::vector<boost::filesystem::path> m_listOfFiles;
+    std::vector<std::string> block;
     bool m_levelscan;
     size_t m_minfilesize;
     std::vector<std::string> m_maskname;
@@ -99,6 +101,28 @@ public:
                     ++iter;
                 }
             }
+        }
+    }
+
+    void readfile() {
+        for (auto mfile : m_listOfFiles) {
+            std::ifstream myreadfile;
+            std::string outstring;
+            size_t pos;
+
+            std::cout << mfile.filename().string() << std::endl;
+
+            myreadfile.open(mfile);
+            if (myreadfile.is_open()) {
+
+
+//                while (!myreadfile.eof()) {
+//                    myreadfile >> outstring;
+//                    std::cout << outstring;
+//                }
+            }
+            myreadfile.close();
+            std::cout << std::endl << std::endl;
         }
     }
 
@@ -199,6 +223,7 @@ int main(int ac, char *av[])
 
         bayans.findfiles();
         bayans.print();
+        bayans.readfile();
 
     }
     catch (std::exception& e) {
